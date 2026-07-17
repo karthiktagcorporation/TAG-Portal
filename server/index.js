@@ -9,6 +9,10 @@ import { mailConfigured, sendWelcomeMail, sendAppAddedMail, sendTestMail } from 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const JWT_SECRET = process.env.JWT_SECRET || 'tag-portal-dev-secret-change-me';
+if (process.env.NODE_ENV === 'production' && (JWT_SECRET.length < 32 || JWT_SECRET.includes('change-me'))) {
+  console.error('FATAL: set a strong JWT_SECRET (32+ random characters) in the environment before running in production.');
+  process.exit(1);
+}
 // Euclidean distance between face descriptors: same person is typically
 // < 0.4, different people > 0.5. Login requires EVERY captured frame to be
 // within MAX, and the average within MEAN — a single lucky frame is not
@@ -21,7 +25,51 @@ const FACE_ENROLL_SAMPLES = 3; // samples stored at enrollment
 const FACE_ENROLL_CONSISTENCY = 0.45;
 
 const app = express();
+app.set('trust proxy', 1); // behind Traefik/Dokploy — report real client IPs
 app.use(express.json({ limit: '1mb' }));
+
+// security headers on every response
+app.use((req, res, next) => {
+  res.set({
+    'X-Frame-Options': 'DENY',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'same-origin',
+    'Permissions-Policy': 'camera=(self), microphone=(), geolocation=()',
+  });
+  if (process.env.NODE_ENV === 'production') {
+    res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
+// ---------- brute-force protection ----------
+// Failed sign-ins are tracked per IP+username; after MAX_FAILS the account/IP
+// pair is locked out for LOCKOUT_MS. Successful sign-in clears the counter.
+const LOCKOUT_MS = 15 * 60 * 1000;
+const MAX_FAILS = 8;
+const failedLogins = new Map(); // key -> { count, since }
+
+const loginKey = (req) => `${req.ip}|${String(req.body?.username || '').trim().toLowerCase()}`;
+
+function loginGuard(req, res, next) {
+  const rec = failedLogins.get(loginKey(req));
+  if (rec && Date.now() - rec.since > LOCKOUT_MS) failedLogins.delete(loginKey(req));
+  const cur = failedLogins.get(loginKey(req));
+  if (cur && cur.count >= MAX_FAILS) {
+    const minutesLeft = Math.ceil((LOCKOUT_MS - (Date.now() - cur.since)) / 60000);
+    return res.status(429).json({ error: `Too many failed attempts. Try again in ${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}.` });
+  }
+  next();
+}
+
+function recordLoginFail(req) {
+  const key = loginKey(req);
+  const rec = failedLogins.get(key) || { count: 0, since: Date.now() };
+  rec.count += 1;
+  failedLogins.set(key, rec);
+}
+
+const clearLoginFails = (req) => failedLogins.delete(loginKey(req));
 
 // ---------- helpers ----------
 const publicUser = (u) => ({
@@ -70,16 +118,18 @@ function storedSamples(raw) {
 const minDistance = (probe, samples) => Math.min(...samples.map((s) => euclidean(probe, s)));
 
 // ---------- auth ----------
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', loginGuard, (req, res) => {
   const { username, password } = req.body || {};
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(String(username || '').trim().toLowerCase());
   if (!user || !bcrypt.compareSync(String(password || ''), user.password_hash)) {
+    recordLoginFail(req);
     return res.status(401).json({ error: 'Invalid username or password' });
   }
+  clearLoginFails(req);
   res.json({ token: signToken(user), user: publicUser(user) });
 });
 
-app.post('/api/auth/face-login', (req, res) => {
+app.post('/api/auth/face-login', loginGuard, (req, res) => {
   const { username, descriptors } = req.body || {};
   if (!Array.isArray(descriptors) || descriptors.length !== FACE_LOGIN_FRAMES || !descriptors.every(isDescriptor)) {
     return res.status(400).json({ error: 'Invalid face data' });
@@ -96,8 +146,10 @@ app.post('/api/auth/face-login', (req, res) => {
   const worst = Math.max(...distances);
   const mean = distances.reduce((a, b) => a + b, 0) / distances.length;
   if (worst > FACE_MATCH_MAX || mean > FACE_MATCH_MEAN) {
+    recordLoginFail(req);
     return res.status(401).json({ error: 'Face not recognized. Try again with better lighting, or use your password.' });
   }
+  clearLoginFails(req);
   res.json({ token: signToken(user), user: publicUser(user), distance: Number(mean.toFixed(3)) });
 });
 
