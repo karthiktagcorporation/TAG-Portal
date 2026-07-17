@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Official TAG brand colors — Mag Red #cb3127, Steel Grey #727071 */
+@theme {
+  --color-brand-50: #fcf3f2;
+  --color-brand-100: #f9e4e3;
+  --color-brand-200: #f4cbc9;
+  --color-brand-300: #eba5a2;
+  --color-brand-400: #dd7572;
+  --color-brand-500: #d04a46;
+  --color-brand-600: #cb3127;
+  --color-brand-700: #a92823;
+  --color-brand-800: #8c2521;
+  --color-brand-900: #752421;
+
+  --color-steel-50: #f7f7f7;
+  --color-steel-100: #e5e5e5;
+  --color-steel-200: #cbcbca;
+  --color-steel-300: #a8a7a7;
+  --color-steel-400: #8b8a8a;
+  --color-steel-500: #727071;
+  --color-steel-600: #5f5e5e;
+  --color-steel-700: #4e4d4d;
+  --color-steel-800: #403f3f;
+  --color-steel-900: #343333;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.hero-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1.5px, transparent 1.5px);
+  background-size: 26px 26px;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fade-up 0.35s ease both; }
+
+@keyframes scan {
+  0%, 100% { top: 8%; }
+  50% { top: 88%; }
+}
+.scan-line { animation: scan 2.2s ease-in-out infinite; }
+
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -30px) scale(1.1); }
+  66% { transform: translate(-30px, 25px) scale(0.95); }
+}
+.drift { animation: drift 14s ease-in-out infinite; }
+.drift-slow { animation: drift 20s ease-in-out infinite reverse; }
+
+@keyframes wave {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(16deg); }
+  40% { transform: rotate(-7deg); }
+  60% { transform: rotate(11deg); }
+  80% { transform: rotate(-3deg); }
+}
+.wave {
+  display: inline-block;
+  animation: wave 2s ease-in-out infinite;
+  transform-origin: 72% 72%;
+}
+
+/* mouse-follow spotlight on cards: JS sets --spot-x / --spot-y / --spot-color */
+.spotlight-card {
+  position: relative;
+  overflow: hidden;
+}
+.spotlight-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(
+    340px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    var(--spot-color, rgba(17, 115, 212, 0.14)),
+    transparent 65%
+  );
+  pointer-events: none;
+}
+.spotlight-card:hover::before { opacity: 1; }
