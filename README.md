@@ -56,8 +56,25 @@ npm start          # serves API + built client on API_PORT
 ```
 
 Face Unlock requires HTTPS (or localhost) — browsers block camera access on
-plain http:// from other machines. Put the portal behind IIS/nginx with a
-certificate, or an internal reverse proxy.
+plain http:// from other machines.
+
+## Deployment (Dokploy — portal.tagcorporation.cloud)
+
+The repo ships a `Dockerfile`; in Dokploy:
+
+1. **Create Application** → Source: GitHub → repo `karthiktagcorporation/TAG-Portal`, branch `main`, Build Type **Dockerfile**
+2. **Environment** tab:
+   ```
+   JWT_SECRET=<long random string — required>
+   PORTAL_URL=https://portal.tagcorporation.cloud
+   SMTP_HOST=... SMTP_PORT=587 SMTP_USER=... SMTP_PASS=...   (optional)
+   ```
+3. **Advanced → Volume Mounts**: add a volume mounted at `/app/data`
+   (persists the SQLite database across deployments — without this, users
+   and apps reset on every deploy!)
+4. **Domains** tab: `portal.tagcorporation.cloud`, container port **4100**,
+   HTTPS on (Let's Encrypt) — HTTPS also unlocks camera access for Face Unlock
+5. Deploy. Auto-deploy on push can be enabled in the app's settings.
 
 ## Storage
 
