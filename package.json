@@ -1,7 +1,7 @@
 {
-  "name": "tag-portal",
+  "name": "tide",
   "version": "1.0.0",
-  "description": "TAG Information Systems - Centralized Enterprise Portal",
+  "description": "TIDE - TAG Integrated Digital Enterprise",
   "type": "module",
   "scripts": {
     "dev": "concurrently -n server,client -c blue,green \"node server/index.js\" \"vite\"",

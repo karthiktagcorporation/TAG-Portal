@@ -113,7 +113,7 @@ export default function Layout({ children }) {
       <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/90 lg:hidden">
         <button onClick={() => navigate('/')} className="flex items-center gap-2.5">
           <Logo tagline={false} className="h-8" />
-          <span className="text-sm font-bold text-slate-900 dark:text-white">Portal</span>
+          <span className="text-sm font-bold text-slate-900 dark:text-white">TIDE</span>
         </button>
         <button
           onClick={() => setDrawerOpen((o) => !o)}

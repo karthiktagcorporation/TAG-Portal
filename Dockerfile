@@ -1,4 +1,4 @@
-# TAG Information Systems Portal — production image for Dokploy
+# TIDE — TAG Integrated Digital Enterprise — production image for Dokploy
 FROM node:24-alpine
 
 WORKDIR /app

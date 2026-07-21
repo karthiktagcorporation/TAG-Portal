@@ -1,4 +1,4 @@
-# TAG Information Systems Portal
+# TIDE — TAG Integrated Digital Enterprise
 
 Centralized enterprise portal for TAG Corporation — one login for every internal
 application (BOM Checker, TAG-MPS, TAG-Patrolling, TAG-VLRP, TAG-AI Query, ERP, BI…),

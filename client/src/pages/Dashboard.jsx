@@ -217,7 +217,7 @@ export default function Dashboard() {
               {greeting()}, {firstName} <span className="wave">👋</span>
             </h1>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Welcome to the TAG Information Systems Portal — everything you need, one click away.
+              Welcome to TIDE — TAG Integrated Digital Enterprise, everything you need, one click away.
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
               <span className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-800/80">

@@ -297,5 +297,5 @@ if (process.env.NODE_ENV === 'production') {
 // server doesn't collide the API onto Vite's port.
 const PORT = process.env.API_PORT || 4100;
 app.listen(PORT, () => {
-  console.log(`TAG Portal API running on http://localhost:${PORT} (mail: ${mailConfigured ? 'configured' : 'not configured'})`);
+  console.log(`TIDE API running on http://localhost:${PORT} (mail: ${mailConfigured ? 'configured' : 'not configured'})`);
 });

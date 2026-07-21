@@ -106,9 +106,9 @@ export default function Login() {
 
           <div>
             <h1 className="max-w-lg text-4xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white xl:text-5xl">
-              Information Systems
+              TIDE
               <span className="block bg-gradient-to-r from-brand-600 to-steel-500 bg-clip-text text-transparent">
-                Portal
+                TAG Integrated Digital Enterprise
               </span>
             </h1>
             <p className="mt-4 max-w-md text-[15px] leading-relaxed text-slate-500 dark:text-slate-400">
@@ -137,7 +137,7 @@ export default function Login() {
 
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Sign in</h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Use your TAG portal account
+            Use your TIDE account
           </p>
 
           <div className="mt-6 flex gap-1 rounded-2xl bg-slate-100 p-1.5 dark:bg-slate-800">
