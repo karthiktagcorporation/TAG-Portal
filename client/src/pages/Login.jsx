@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { KeyRound, ScanFace, Eye, EyeOff, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
+import { KeyRound, ScanFace, Eye, EyeOff, Loader2, AlertCircle, ShieldCheck, Mail } from 'lucide-react';
 import { useAuth } from '../auth';
 import Logo from '../Logo';
 import FaceScanner from '../components/FaceScanner';
@@ -19,10 +19,12 @@ export default function Login() {
   const [version, setVersion] = useState('');
 
   useEffect(() => {
+    let cancelled = false;
     fetch('/api/meta')
       .then((r) => r.json())
-      .then((d) => setVersion(d.version))
+      .then((d) => { if (!cancelled) setVersion(d.version); })
       .catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   const submitPassword = async (e) => {
@@ -95,21 +97,23 @@ export default function Login() {
     <div className="flex min-h-full bg-slate-50 dark:bg-slate-950">
       {/* watermark showcase panel */}
       <div className="relative hidden flex-1 overflow-hidden lg:block">
-        {/* giant faint logo watermark */}
+        {/* giant watermark — real TAG logo colors, faint */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <Logo tagline={false} className="h-[26rem] opacity-[0.06] grayscale dark:invert" />
+          <Logo tagline={false} className="h-[26rem] opacity-[0.09]" />
         </div>
         <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-brand-600 via-steel-500 to-brand-600" />
 
         <div className="relative flex h-full flex-col justify-between p-12">
-          <Logo className="h-16 self-start" />
+          {/* TAG logo + TIDE lockup, together at the top */}
+          <div className="flex items-center gap-3">
+            <Logo tagline={false} className="h-12" />
+            <div className="h-8 w-px bg-slate-300/70 dark:bg-slate-700" />
+            <span className="gradient-text text-2xl font-black tracking-tight">TIDE</span>
+          </div>
 
           <div>
-            <h1 className="max-w-lg text-4xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white xl:text-5xl">
-              TIDE
-              <span className="block bg-gradient-to-r from-brand-600 to-steel-500 bg-clip-text text-transparent">
-                TAG Integrated Digital Enterprise
-              </span>
+            <h1 className="max-w-lg bg-gradient-to-r from-brand-600 to-steel-500 bg-clip-text text-4xl font-extrabold leading-tight tracking-tight text-transparent xl:text-5xl">
+              TAG Integrated Digital Enterprise
             </h1>
             <p className="mt-4 max-w-md text-[15px] leading-relaxed text-slate-500 dark:text-slate-400">
               One secure sign-in for every TAG application.
@@ -146,15 +150,17 @@ export default function Login() {
           </div>
 
           {error && (
-            <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div role="alert" className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               {error}
             </div>
           )}
 
           {tab === 'password' ? (
             <form onSubmit={submitPassword} className="mt-5 space-y-4">
+              <label htmlFor="login-username" className="sr-only">Username</label>
               <input
+                id="login-username"
                 className={inputCls}
                 placeholder="Username"
                 value={username}
@@ -163,7 +169,9 @@ export default function Login() {
                 autoComplete="username"
               />
               <div className="relative">
+                <label htmlFor="login-password" className="sr-only">Password</label>
                 <input
+                  id="login-password"
                   className={`${inputCls} pr-11`}
                   type={showPw ? 'text' : 'password'}
                   placeholder="Password"
@@ -174,12 +182,24 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPw((s) => !s)}
+                  aria-label={showPw ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                   tabIndex={-1}
                 >
-                  {showPw ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                  {showPw ? <EyeOff className="h-4.5 w-4.5" aria-hidden="true" /> : <Eye className="h-4.5 w-4.5" aria-hidden="true" />}
                 </button>
               </div>
+
+              <div className="flex justify-end">
+                <a
+                  href="mailto:tagis@tagcorporation.net?subject=TIDE%20password%20reset"
+                  className="flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                >
+                  <Mail className="h-3.5 w-3.5" aria-hidden="true" />
+                  Forgot password?
+                </a>
+              </div>
+
               <Btn type="submit" disabled={busy || !username || !password} className="w-full py-3">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
                 {busy ? 'Signing in…' : 'Sign in'}
@@ -189,7 +209,9 @@ export default function Login() {
             <div className="mt-5 space-y-4">
               {!scanning && (
                 <>
+                  <label htmlFor="login-face-username" className="sr-only">Username</label>
                   <input
+                    id="login-face-username"
                     className={inputCls}
                     placeholder="Username"
                     value={username}
@@ -199,7 +221,7 @@ export default function Login() {
                   <Btn onClick={startFaceScan} className="w-full py-3">
                     <ScanFace className="h-4 w-4" /> Start Face Scan
                   </Btn>
-                  <p className="text-center text-xs text-slate-400">
+                  <p className="text-center text-xs text-slate-500 dark:text-slate-400">
                     First time? Sign in with your password, then enroll Face Unlock from your profile.
                   </p>
                 </>
@@ -213,7 +235,7 @@ export default function Login() {
             </div>
           )}
 
-          <div className="mt-8 border-t border-slate-100 pt-5 text-center text-xs text-slate-400 dark:border-slate-800 dark:text-slate-500 lg:hidden">
+          <div className="mt-8 border-t border-slate-100 pt-5 text-center text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400 lg:hidden">
             <p>Trouble signing in? Contact IT — tagis@tagcorporation.net</p>
             {version && <p className="mt-1">Version {version}</p>}
           </div>

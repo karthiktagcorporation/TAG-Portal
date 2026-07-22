@@ -36,11 +36,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.hero-dots {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1.5px, transparent 1.5px);
-  background-size: 26px 26px;
-}
-
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -73,6 +68,114 @@ body {
   animation: wave 2s ease-in-out infinite;
   transform-origin: 72% 72%;
 }
+
+/* animated light aurora-mesh background */
+@keyframes mesh-move {
+  0%, 100% { background-position: 0% 0%, 100% 100%, 50% 50%; }
+  50% { background-position: 100% 40%, 10% 60%, 60% 30%; }
+}
+.mesh {
+  background-image:
+    radial-gradient(46% 46% at 18% 22%, rgba(203, 49, 39, 0.14), transparent 65%),
+    radial-gradient(42% 42% at 86% 78%, rgba(114, 112, 113, 0.20), transparent 65%),
+    radial-gradient(36% 36% at 55% 50%, rgba(203, 49, 39, 0.07), transparent 70%);
+  background-size: 200% 200%;
+  animation: mesh-move 18s ease-in-out infinite;
+}
+
+/* faint fading grid, used behind hero panels */
+.grid-mask {
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+  background-size: 36px 36px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, black 30%, transparent 78%);
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, black 30%, transparent 78%);
+}
+.dark .grid-mask {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+}
+
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+.spin-slow { animation: spin-slow 26s linear infinite; }
+
+.gradient-text {
+  background: linear-gradient(90deg, #cb3127, #727071);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ============ Login page only — scoped under .tide-login ============ */
+.tide-login {
+  --p: #c0392b;
+  --s: #e74c3c;
+  --bg: #fafafa;
+  --accent: #2563eb;
+  --ink: #111827;
+}
+
+@keyframes aurora-drift-a {
+  0%, 100% { transform: translate(-6%, -4%) scale(1); }
+  50% { transform: translate(8%, 6%) scale(1.15); }
+}
+@keyframes aurora-drift-b {
+  0%, 100% { transform: translate(6%, 4%) scale(1.05); }
+  50% { transform: translate(-8%, -8%) scale(0.95); }
+}
+@keyframes aurora-drift-c {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-4%, 10%) scale(1.1); }
+}
+.tide-login .aurora-a { animation: aurora-drift-a 22s ease-in-out infinite; }
+.tide-login .aurora-b { animation: aurora-drift-b 26s ease-in-out infinite; }
+.tide-login .aurora-c { animation: aurora-drift-c 19s ease-in-out infinite; }
+
+.tide-login .fine-grid {
+  background-image:
+    linear-gradient(rgba(17, 24, 39, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 24, 39, 0.05) 1px, transparent 1px);
+  background-size: 42px 42px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 40% 40%, black 20%, transparent 75%);
+  mask-image: radial-gradient(ellipse 80% 70% at 40% 40%, black 20%, transparent 75%);
+}
+
+.tide-login .noise {
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+@keyframes ray-sweep {
+  0% { transform: translateX(-30%) rotate(8deg); opacity: 0; }
+  15% { opacity: 0.5; }
+  85% { opacity: 0.5; }
+  100% { transform: translateX(130%) rotate(8deg); opacity: 0; }
+}
+.tide-login .ray {
+  position: absolute;
+  top: -20%;
+  width: 12%;
+  height: 140%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  animation: ray-sweep 9s ease-in-out infinite;
+}
+
+@keyframes particle-rise {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 0.7; }
+  90% { opacity: 0.4; }
+  100% { transform: translateY(-140px) translateX(10px); opacity: 0; }
+}
+.tide-login .particle {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(192, 57, 43, 0.55), transparent 70%);
+  animation: particle-rise linear infinite;
+}
+
 
 /* mouse-follow spotlight on cards: JS sets --spot-x / --spot-y / --spot-color */
 .spotlight-card {

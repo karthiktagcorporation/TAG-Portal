@@ -73,10 +73,18 @@ function SidebarFooter() {
 function SidebarBrand({ onClick }) {
   return (
     <button onClick={onClick} className="mb-6 flex items-center gap-3 px-2 pt-2">
-      <Logo tagline={false} className="h-9" />
+      <div className="relative flex h-9 w-9 shrink-0 items-center justify-center">
+        <div className="spin-slow absolute inset-0 rounded-full border border-dashed border-brand-300/70 dark:border-brand-700/50" />
+        <Logo tagline={false} className="relative h-9" />
+      </div>
       <div className="text-left leading-tight">
-        <div className="text-[13px] font-bold text-slate-900 dark:text-white">Information Systems</div>
-        <div className="text-[10px] font-bold tracking-[0.25em] text-brand-600 dark:text-brand-400">PORTAL</div>
+        <div className="gradient-text text-sm font-black tracking-wide">TIDE</div>
+        <div
+          className="text-[8px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500"
+          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+        >
+          TAG <span className="text-brand-500">·</span> Integrated <span className="text-brand-500">·</span> Digital <span className="text-brand-500">·</span> Enterprise
+        </div>
       </div>
     </button>
   );

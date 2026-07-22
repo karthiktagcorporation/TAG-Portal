@@ -82,8 +82,8 @@ function StatCard({ icon: Icon, label, value, tone = 'brand', onClick, index }) 
   );
 }
 
-/* app card with mouse-follow spotlight */
-function AppCard({ app, index }) {
+/* app card with mouse-follow spotlight — first card in the grid gets a bento "featured" treatment */
+function AppCard({ app, index, featured = false }) {
   const ref = useRef(null);
 
   const onMouseMove = (e) => {
@@ -99,7 +99,11 @@ function AppCard({ app, index }) {
       target="_blank"
       rel="noreferrer"
       onMouseMove={onMouseMove}
-      className="spotlight-card fade-up group rounded-2xl border border-slate-200 bg-white p-5 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+      className={`spotlight-card fade-up group relative overflow-hidden rounded-2xl border p-5 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl ${
+        featured
+          ? 'border-slate-200 bg-gradient-to-br from-white to-slate-50 sm:col-span-2 sm:row-span-1 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900'
+          : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+      }`}
       style={{
         animationDelay: `${350 + index * 70}ms`,
         '--spot-color': `${app.color}1f`,
@@ -107,28 +111,35 @@ function AppCard({ app, index }) {
       onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${app.color}99`; }}
       onMouseLeave={(e) => { e.currentTarget.style.borderColor = ''; }}
     >
+      {featured && (
+        <div
+          className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full opacity-20 blur-2xl"
+          style={{ background: app.color }}
+        />
+      )}
+
       {/* colored accent line */}
       <div
         className="absolute inset-x-0 top-0 h-[3px] scale-x-0 rounded-t-2xl transition-transform duration-300 group-hover:scale-x-100"
         style={{ background: `linear-gradient(90deg, ${app.color}, transparent)` }}
       />
 
-      <div className="flex items-start justify-between">
+      <div className="relative flex items-start justify-between">
         <div
-          className="flex h-14 w-14 items-center justify-center rounded-2xl text-white transition-all duration-300 group-hover:scale-110 group-hover:-rotate-6"
+          className={`flex items-center justify-center rounded-2xl text-white transition-all duration-300 group-hover:scale-110 group-hover:-rotate-6 ${featured ? 'h-16 w-16' : 'h-14 w-14'}`}
           style={{ background: `linear-gradient(135deg, ${app.color}, ${app.color}cc)`, boxShadow: `0 10px 24px -8px ${app.color}90` }}
         >
-          <AppIcon name={app.icon} className="h-6.5 w-6.5" />
+          <AppIcon name={app.icon} className={featured ? 'h-7.5 w-7.5' : 'h-6.5 w-6.5'} />
         </div>
         <ExternalLink className="h-4 w-4 text-slate-300 transition group-hover:text-slate-500 dark:text-slate-600 dark:group-hover:text-slate-300" />
       </div>
 
-      <h3 className="mt-4 text-[15px] font-bold text-slate-900 dark:text-white">{app.name}</h3>
-      <p className="mt-1 line-clamp-2 min-h-10 text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">
+      <h3 className={`relative mt-4 font-bold text-slate-900 dark:text-white ${featured ? 'text-lg' : 'text-[15px]'}`}>{app.name}</h3>
+      <p className={`relative mt-1 leading-relaxed text-slate-500 dark:text-slate-400 ${featured ? 'max-w-md text-sm' : 'line-clamp-2 min-h-10 text-[13px]'}`}>
         {app.description}
       </p>
 
-      <div className="mt-3 flex items-center justify-between gap-2">
+      <div className="relative mt-3 flex items-center justify-between gap-2">
         <div className="flex flex-wrap gap-1.5">
           {app.departments.map((d) => (
             <span
@@ -196,8 +207,10 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      {/* hero — light with brand accents */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-brand-50/60 to-steel-50 px-7 pb-20 pt-8 dark:border-slate-800 dark:bg-slate-900 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 sm:px-9 sm:pt-10">
+      {/* hero — aurora-mesh light panel */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white px-7 pb-20 pt-8 dark:border-slate-800 dark:bg-slate-900 sm:px-9 sm:pt-10">
+        <div className="mesh absolute inset-0" />
+        <div className="grid-mask absolute inset-0" />
         <div className="drift absolute -right-24 -top-28 h-80 w-80 rounded-full bg-brand-100/70 blur-3xl dark:bg-brand-900/20" />
         <div className="drift-slow absolute -bottom-32 left-1/4 h-80 w-80 rounded-full bg-steel-100/80 blur-3xl dark:bg-steel-800/20" />
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-600 via-brand-300 to-steel-400" />
@@ -217,7 +230,11 @@ export default function Dashboard() {
               {greeting()}, {firstName} <span className="wave">👋</span>
             </h1>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Welcome to TIDE — TAG Integrated Digital Enterprise, everything you need, one click away.
+              Welcome to <span className="gradient-text font-bold">TIDE</span> —{' '}
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                TAG <span className="text-brand-500">·</span> Integrated <span className="text-brand-500">·</span> Digital <span className="text-brand-500">·</span> Enterprise
+              </span>
+              , everything you need, one click away.
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
               <span className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-800/80">
@@ -303,9 +320,9 @@ export default function Dashboard() {
           </p>
         </div>
       ) : (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-4 grid auto-rows-fr gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {visible.map((app, i) => (
-            <AppCard key={app.id} app={app} index={i} />
+            <AppCard key={app.id} app={app} index={i} featured={i === 0} />
           ))}
         </div>
       )}
