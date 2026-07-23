@@ -408,7 +408,7 @@ function UsersTab({ departments }) {
                         <Pencil className="h-4 w-4" />
                       </button>
                     )}
-                    {u.role !== 'superadmin' && u.id !== me.id && (
+                    {(u.role !== 'superadmin' || me.role === 'superadmin') && u.id !== me.id && (
                       <button onClick={() => setDeleting(u)} className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950">
                         <Trash2 className="h-4 w-4" />
                       </button>
