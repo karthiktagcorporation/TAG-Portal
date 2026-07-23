@@ -35,9 +35,22 @@ db.exec(`
     color TEXT NOT NULL DEFAULT '#1173d4',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS departments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
-export const DEPARTMENTS = ['Design', 'HR', 'Testing', 'Accounts', 'IT', 'ERP', 'Production', 'Quality'];
+const DEFAULT_DEPARTMENTS = ['Design', 'HR', 'Testing', 'Accounts', 'IT', 'ERP', 'Production', 'Quality'];
+
+if (db.prepare('SELECT COUNT(*) AS c FROM departments').get().c === 0) {
+  const insertDept = db.prepare('INSERT INTO departments (name) VALUES (?)');
+  for (const name of DEFAULT_DEPARTMENTS) insertDept.run(name);
+}
+
+export const getDepartments = () => db.prepare('SELECT name FROM departments ORDER BY name').all().map((d) => d.name);
 
 const userCount = db.prepare('SELECT COUNT(*) AS c FROM users').get().c;
 if (userCount === 0) {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ExternalLink, LayoutGrid, ScanFace, Boxes, Building2, ShieldCheck, ArrowRight, RefreshCw } from 'lucide-react';
+import { Search, ExternalLink, LayoutGrid, ScanFace, Boxes, Building2, ShieldCheck, ArrowRight, RefreshCw, Star, List } from 'lucide-react';
 import { useAuth } from '../auth';
 import { api } from '../api';
 import Layout from '../components/Layout';
@@ -83,7 +83,7 @@ function StatCard({ icon: Icon, label, value, tone = 'brand', onClick, index }) 
 }
 
 /* app card with mouse-follow spotlight — first card in the grid gets a bento "featured" treatment */
-function AppCard({ app, index, featured = false }) {
+function AppCard({ app, index, featured = false, listView = false, pinned = false, onTogglePin }) {
   const ref = useRef(null);
 
   const onMouseMove = (e) => {
@@ -91,6 +91,52 @@ function AppCard({ app, index, featured = false }) {
     ref.current.style.setProperty('--spot-x', `${e.clientX - rect.left}px`);
     ref.current.style.setProperty('--spot-y', `${e.clientY - rect.top}px`);
   };
+
+  const togglePin = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onTogglePin(app.id);
+  };
+
+  if (listView) {
+    return (
+      <a
+        href={app.url}
+        target="_blank"
+        rel="noreferrer"
+        className="fade-up group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-3.5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
+        style={{ animationDelay: `${300 + index * 50}ms` }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${app.color}99`; }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = ''; }}
+      >
+        <div
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white transition-transform duration-300 group-hover:scale-110"
+          style={{ background: `linear-gradient(135deg, ${app.color}, ${app.color}cc)`, boxShadow: `0 8px 18px -6px ${app.color}90` }}
+        >
+          <AppIcon name={app.icon} className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm font-bold text-slate-900 dark:text-white">{app.name}</h3>
+          <p className="truncate text-xs text-slate-500 dark:text-slate-400">{app.description}</p>
+        </div>
+        <div className="hidden flex-wrap justify-end gap-1.5 sm:flex">
+          {app.departments.slice(0, 2).map((d) => (
+            <span key={d} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+              {d}
+            </span>
+          ))}
+        </div>
+        <button
+          onClick={togglePin}
+          title={pinned ? 'Unpin' : 'Pin to top'}
+          className={`rounded-lg p-1.5 transition ${pinned ? 'text-amber-500' : 'text-slate-300 hover:text-amber-500 dark:text-slate-700'}`}
+        >
+          <Star className="h-4 w-4" fill={pinned ? 'currentColor' : 'none'} />
+        </button>
+        <ExternalLink className="h-4 w-4 shrink-0 text-slate-300 transition group-hover:text-slate-500 dark:text-slate-600 dark:group-hover:text-slate-300" />
+      </a>
+    );
+  }
 
   return (
     <a
@@ -124,6 +170,16 @@ function AppCard({ app, index, featured = false }) {
         style={{ background: `linear-gradient(90deg, ${app.color}, transparent)` }}
       />
 
+      <button
+        onClick={togglePin}
+        title={pinned ? 'Unpin' : 'Pin to top'}
+        className={`absolute right-4 top-4 z-10 rounded-lg p-1.5 opacity-0 transition-all duration-200 group-hover:opacity-100 ${
+          pinned ? 'text-amber-500 opacity-100' : 'text-slate-300 hover:text-amber-500 dark:text-slate-600'
+        }`}
+      >
+        <Star className="h-4 w-4" fill={pinned ? 'currentColor' : 'none'} />
+      </button>
+
       <div className="relative flex items-start justify-between">
         <div
           className={`flex items-center justify-center rounded-2xl text-white transition-all duration-300 group-hover:scale-110 group-hover:-rotate-6 ${featured ? 'h-16 w-16' : 'h-14 w-14'}`}
@@ -131,7 +187,6 @@ function AppCard({ app, index, featured = false }) {
         >
           <AppIcon name={app.icon} className={featured ? 'h-7.5 w-7.5' : 'h-6.5 w-6.5'} />
         </div>
-        <ExternalLink className="h-4 w-4 text-slate-300 transition group-hover:text-slate-500 dark:text-slate-600 dark:group-hover:text-slate-300" />
       </div>
 
       <h3 className={`relative mt-4 font-bold text-slate-900 dark:text-white ${featured ? 'text-lg' : 'text-[15px]'}`}>{app.name}</h3>
@@ -170,6 +225,11 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState('');
   const [dept, setDept] = useState('All');
+  const [view, setView] = useState(() => localStorage.getItem('tide-view') || 'grid');
+  const [pinned, setPinned] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('tide-pinned') || '[]'); } catch { return []; }
+  });
+  const searchRef = useRef(null);
 
   const loadApps = () =>
     api('/api/apps')
@@ -178,6 +238,27 @@ export default function Dashboard() {
       .finally(() => setLoaded(true));
 
   useEffect(() => { loadApps(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const setViewMode = (v) => { setView(v); localStorage.setItem('tide-view', v); };
+
+  const togglePin = (id) => {
+    setPinned((prev) => {
+      const next = prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id];
+      localStorage.setItem('tide-pinned', JSON.stringify(next));
+      return next;
+    });
+  };
 
   const refresh = async () => {
     setRefreshing(true);
@@ -194,13 +275,15 @@ export default function Dashboard() {
 
   const visible = useMemo(
     () =>
-      apps.filter((a) => {
-        const q = query.trim().toLowerCase();
-        const matchesQuery = !q || a.name.toLowerCase().includes(q) || a.description.toLowerCase().includes(q);
-        const matchesDept = dept === 'All' || a.departments.includes(dept) || a.departments.includes('All');
-        return matchesQuery && matchesDept;
-      }),
-    [apps, query, dept]
+      apps
+        .filter((a) => {
+          const q = query.trim().toLowerCase();
+          const matchesQuery = !q || a.name.toLowerCase().includes(q) || a.description.toLowerCase().includes(q);
+          const matchesDept = dept === 'All' || a.departments.includes(dept) || a.departments.includes('All');
+          return matchesQuery && matchesDept;
+        })
+        .sort((a, b) => (pinned.includes(b.id) ? 1 : 0) - (pinned.includes(a.id) ? 1 : 0)),
+    [apps, query, dept, pinned]
   );
 
   const firstName = user.name.split(' ')[0];
@@ -284,9 +367,10 @@ export default function Dashboard() {
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
+              ref={searchRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search…"
+              placeholder="Search…  (press /)"
               className="w-44 rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 shadow-sm outline-none transition-all duration-300 focus:w-64 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
             />
           </div>
@@ -305,6 +389,22 @@ export default function Dashboard() {
               </button>
             ))}
           </div>
+          <div className="flex gap-0.5 rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <button
+              onClick={() => setViewMode('grid')}
+              title="Grid view"
+              className={`rounded-lg p-1.5 transition ${view === 'grid' ? 'bg-brand-600 text-white shadow' : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              title="List view"
+              className={`rounded-lg p-1.5 transition ${view === 'list' ? 'bg-brand-600 text-white shadow' : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -319,10 +419,23 @@ export default function Dashboard() {
               : 'Try a different search term or department filter.'}
           </p>
         </div>
+      ) : view === 'list' ? (
+        <div className="mt-4 flex flex-col gap-2.5">
+          {visible.map((app, i) => (
+            <AppCard key={app.id} app={app} index={i} listView pinned={pinned.includes(app.id)} onTogglePin={togglePin} />
+          ))}
+        </div>
       ) : (
         <div className="mt-4 grid auto-rows-fr gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {visible.map((app, i) => (
-            <AppCard key={app.id} app={app} index={i} featured={i === 0} />
+            <AppCard
+              key={app.id}
+              app={app}
+              index={i}
+              featured={i === 0}
+              pinned={pinned.includes(app.id)}
+              onTogglePin={togglePin}
+            />
           ))}
         </div>
       )}

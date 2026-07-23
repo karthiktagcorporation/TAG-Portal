@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   LayoutGrid, Users as UsersIcon, Plus, Pencil, Trash2, Loader2,
-  ScanFace, ExternalLink,
+  ScanFace, ExternalLink, Building2, Check, X, Mail, Send,
 } from 'lucide-react';
 import { useAuth } from '../auth';
 import { api } from '../api';
@@ -447,27 +447,205 @@ function UsersTab({ departments }) {
   );
 }
 
+/* ================= Departments tab ================= */
+function DepartmentsTab({ onChanged }) {
+  const [depts, setDepts] = useState([]);
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [renaming, setRenaming] = useState(null); // {id, name}
+  const [renameValue, setRenameValue] = useState('');
+  const [deleting, setDeleting] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+
+  const load = () => api('/api/departments').then((d) => setDepts(d.departments)).catch((e) => toast(e.message, 'error'));
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const addDept = async (e) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+    setBusy(true);
+    try {
+      await api('/api/departments', { method: 'POST', body: { name: newName.trim() } });
+      toast(`"${newName.trim()}" added`);
+      setNewName('');
+      setAdding(false);
+      load();
+      onChanged();
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const startRename = (d) => { setRenaming(d); setRenameValue(d.name); };
+
+  const saveRename = async (e) => {
+    e.preventDefault();
+    if (!renameValue.trim()) return;
+    setBusy(true);
+    try {
+      await api(`/api/departments/${renaming.id}`, { method: 'PUT', body: { name: renameValue.trim() } });
+      toast(`Renamed to "${renameValue.trim()}"`);
+      setRenaming(null);
+      load();
+      onChanged();
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    try {
+      await api(`/api/departments/${deleting.id}`, { method: 'DELETE' });
+      toast(`"${deleting.name}" deleted`);
+      setDeleting(null);
+      load();
+      onChanged();
+    } catch (e) {
+      toast(e.message, 'error');
+      setDeleting(null);
+    }
+  };
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-slate-500 dark:text-slate-400">{depts.length} department{depts.length === 1 ? '' : 's'} configured</p>
+        {!adding && <Btn onClick={() => setAdding(true)}><Plus className="h-4 w-4" /> Add Department</Btn>}
+      </div>
+
+      {adding && (
+        <form onSubmit={addDept} className="mb-4 flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+          <input
+            autoFocus
+            className={inputCls}
+            placeholder="Department name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+          />
+          <Btn type="submit" disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Save</Btn>
+          <Btn type="button" variant="ghost" onClick={() => { setAdding(false); setNewName(''); }}><X className="h-4 w-4" /></Btn>
+        </form>
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {depts.map((d) => (
+          <div key={d.id} className="group rounded-2xl border border-slate-200 bg-white p-4 transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+            {renaming?.id === d.id ? (
+              <form onSubmit={saveRename} className="flex items-center gap-2">
+                <input autoFocus className={inputCls} value={renameValue} onChange={(e) => setRenameValue(e.target.value)} />
+                <button type="submit" disabled={busy} className="rounded-lg p-2 text-emerald-600 transition hover:bg-emerald-50 dark:hover:bg-emerald-950">
+                  <Check className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={() => setRenaming(null)} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800">
+                  <X className="h-4 w-4" />
+                </button>
+              </form>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow">
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate font-bold text-slate-900 dark:text-white">{d.name}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{d.userCount} user{d.userCount === 1 ? '' : 's'}</p>
+                </div>
+                <div className="flex gap-1 opacity-0 transition group-hover:opacity-100">
+                  <button onClick={() => startRename(d)} className="rounded-lg p-2 text-slate-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-950">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => setDeleting(d)} className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <Modal open={Boolean(deleting)} onClose={() => setDeleting(null)} title="Delete department">
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          Remove <b>{deleting?.name}</b>? This only works if no users are currently assigned to it.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Btn variant="ghost" onClick={() => setDeleting(null)}>Cancel</Btn>
+          <Btn variant="danger" onClick={remove}><Trash2 className="h-4 w-4" /> Delete</Btn>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+/* ================= mail status ================= */
+function MailStatus({ mailConfigured }) {
+  const [sending, setSending] = useState(false);
+  const toast = useToast();
+
+  const sendTest = async () => {
+    setSending(true);
+    try {
+      const r = await api('/api/mail/test', { method: 'POST' });
+      toast(`Test email sent to ${r.to}`);
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div
+      className={`flex items-center gap-3 rounded-2xl border px-4 py-2.5 text-sm ${
+        mailConfigured
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-300'
+          : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300'
+      }`}
+    >
+      <Mail className="h-4 w-4 shrink-0" />
+      <span className="font-semibold">{mailConfigured ? 'SMTP configured' : 'SMTP not configured'}</span>
+      {mailConfigured && (
+        <button
+          onClick={sendTest}
+          disabled={sending}
+          className="ml-1 flex items-center gap-1.5 rounded-lg bg-white/70 px-2.5 py-1 text-xs font-bold shadow-sm transition hover:bg-white disabled:opacity-60 dark:bg-slate-900/50 dark:hover:bg-slate-900"
+        >
+          {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+          Send test email
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ================= page ================= */
 export default function Admin() {
   const [tab, setTab] = useState('apps');
   const [meta, setMeta] = useState({ departments: [], mailConfigured: false });
 
-  useEffect(() => {
-    api('/api/meta').then(setMeta).catch(() => {});
-  }, []);
+  const loadMeta = () => api('/api/meta').then(setMeta).catch(() => {});
+  useEffect(() => { loadMeta(); }, []);
 
   const tabs = [
     { id: 'apps', label: 'Applications', icon: LayoutGrid },
     { id: 'users', label: 'Users & Access', icon: UsersIcon },
+    { id: 'departments', label: 'Departments', icon: Building2 },
   ];
 
   return (
     <Layout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">Admin Console</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Manage portal applications, user accounts and notifications
-        </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">Admin Console</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Manage portal applications, user accounts and notifications
+          </p>
+        </div>
+        <MailStatus mailConfigured={meta.mailConfigured} />
       </div>
 
       <div className="mb-6 flex gap-1 overflow-x-auto rounded-2xl bg-slate-100 p-1.5 dark:bg-slate-900 sm:w-fit">
@@ -489,6 +667,7 @@ export default function Admin() {
       <div className="fade-up" key={tab}>
         {tab === 'apps' && <AppsTab departments={meta.departments} />}
         {tab === 'users' && <UsersTab departments={meta.departments} />}
+        {tab === 'departments' && <DepartmentsTab onChanged={loadMeta} />}
       </div>
     </Layout>
   );

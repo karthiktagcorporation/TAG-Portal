@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { db, DEPARTMENTS } from './db.js';
+import { db, getDepartments } from './db.js';
 import { mailConfigured, sendWelcomeMail, sendAppAddedMail, sendTestMail } from './mail.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -274,9 +274,62 @@ app.delete('/api/users/:id', auth, adminOnly, (req, res) => {
   res.json({ ok: true });
 });
 
+// ---------- departments ----------
+app.get('/api/departments', auth, adminOnly, (req, res) => {
+  const rows = db.prepare('SELECT * FROM departments ORDER BY name').all();
+  const userCounts = db.prepare('SELECT department, COUNT(*) AS c FROM users GROUP BY department').all();
+  const countByDept = Object.fromEntries(userCounts.map((r) => [r.department, r.c]));
+  res.json({ departments: rows.map((d) => ({ ...d, userCount: countByDept[d.name] || 0 })) });
+});
+
+app.post('/api/departments', auth, adminOnly, (req, res) => {
+  const name = String(req.body?.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'Department name is required' });
+  if (name === 'All') return res.status(400).json({ error: '"All" is reserved and cannot be used as a department name' });
+  if (db.prepare('SELECT id FROM departments WHERE name = ?').get(name)) {
+    return res.status(400).json({ error: 'That department already exists' });
+  }
+  const result = db.prepare('INSERT INTO departments (name) VALUES (?)').run(name);
+  res.json({ department: db.prepare('SELECT * FROM departments WHERE id = ?').get(result.lastInsertRowid) });
+});
+
+app.put('/api/departments/:id', auth, adminOnly, (req, res) => {
+  const existing = db.prepare('SELECT * FROM departments WHERE id = ?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Department not found' });
+  const name = String(req.body?.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'Department name is required' });
+  if (name === 'All') return res.status(400).json({ error: '"All" is reserved and cannot be used as a department name' });
+  if (name !== existing.name && db.prepare('SELECT id FROM departments WHERE name = ?').get(name)) {
+    return res.status(400).json({ error: 'That department already exists' });
+  }
+
+  // rename cascades to users and to app department lists so nothing is orphaned
+  db.prepare('UPDATE departments SET name = ? WHERE id = ?').run(name, req.params.id);
+  db.prepare('UPDATE users SET department = ? WHERE department = ?').run(name, existing.name);
+  const apps = db.prepare('SELECT id, departments FROM apps').all();
+  const renameStmt = db.prepare('UPDATE apps SET departments = ? WHERE id = ?');
+  for (const a of apps) {
+    const depts = JSON.parse(a.departments);
+    if (depts.includes(existing.name)) {
+      renameStmt.run(JSON.stringify(depts.map((d) => (d === existing.name ? name : d))), a.id);
+    }
+  }
+
+  res.json({ department: db.prepare('SELECT * FROM departments WHERE id = ?').get(req.params.id) });
+});
+
+app.delete('/api/departments/:id', auth, adminOnly, (req, res) => {
+  const existing = db.prepare('SELECT * FROM departments WHERE id = ?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Department not found' });
+  const inUse = db.prepare('SELECT COUNT(*) AS c FROM users WHERE department = ?').get(existing.name).c;
+  if (inUse > 0) return res.status(400).json({ error: `${inUse} user(s) are still in this department. Move them first.` });
+  db.prepare('DELETE FROM departments WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 // ---------- meta / mail ----------
 app.get('/api/meta', (req, res) => {
-  res.json({ departments: DEPARTMENTS, mailConfigured, version: '1.0.0' });
+  res.json({ departments: getDepartments(), mailConfigured, version: '1.0.0' });
 });
 
 app.post('/api/mail/test', auth, adminOnly, async (req, res) => {
